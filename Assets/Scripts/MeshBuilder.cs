@@ -78,7 +78,9 @@ public class MeshBuilder
 
         AllocateMesh(m_bodyVertexCount, m_bodyTrisCount);
 
-        GenerateVertices();
+        int vindex = 0;
+        GenerateVertices(ref vindex, true);
+        if (m_hasThickness) GenerateVertices(ref vindex, false);
 
         GenerateBodyPlaneTriangles();
 
@@ -119,9 +121,8 @@ public class MeshBuilder
         }
     }
 
-    void GenerateVertices()
+    void GenerateVertices(ref int vertexIndex, bool isOuterWall)
     {
-        int vertexIndex = 0;
         for (int i = 0; i < m_samples.Count; i++)
         {
             Vector3 center = m_samples[i].position;
@@ -131,9 +132,9 @@ public class MeshBuilder
             for (int n = 0; n < m_sides + 1; n++)
             {
                 float anglePercent = (float)(n) / m_sides;
-                Quaternion rot = Quaternion.AngleAxis(anglePercent * 360f + 180f, m_samples[i].direction);
+                Quaternion rot = Quaternion.AngleAxis(anglePercent * 360f, m_samples[i].direction);
 
-                float offset = GetVertexOffset(true);
+                float offset = GetVertexThicknessOffset(isOuterWall);
 
                 m_customMesh.vertices[vertexIndex] = center + rot * right * offset;
 
@@ -141,41 +142,15 @@ public class MeshBuilder
                 m_uvs.y = 1f - uvPercent;
                 m_customMesh.uv[vertexIndex] = m_uvs;
 
-                m_customMesh.normals[vertexIndex] = Vector3.Normalize(m_customMesh.vertices[vertexIndex] - center);
+                Vector3 vn = m_hasThickness ? center - m_customMesh.vertices[vertexIndex] : m_customMesh.vertices[vertexIndex] - center;
+                m_customMesh.normals[vertexIndex] = Vector3.Normalize(vn);
 
                 vertexIndex++;
             }
         }
-
-        if (m_hasThickness)
-        {
-            for (int i = 0; i < m_samples.Count; i++)
-            {
-                Vector3 center = m_samples[i].position;
-                Vector3 right = m_samples[i].right;
-
-                float uvPercent = (float)(i) / m_samples.Count;
-                for (int n = 0; n < m_sides + 1; n++)
-                {
-                    float anglePercent = (float)(n) / m_sides;
-                    Quaternion rot = Quaternion.AngleAxis(anglePercent * 360f + 180f, m_samples[i].direction);
-
-                    float offset = GetVertexOffset(false);
-                    m_customMesh.vertices[vertexIndex] = center + rot * right * offset;
-
-                    m_uvs.x = anglePercent;
-                    m_uvs.y = 1f - uvPercent;
-                    m_customMesh.uv[vertexIndex] = m_uvs;
-
-                    m_customMesh.normals[vertexIndex] = Vector3.Normalize(center - m_customMesh.vertices[vertexIndex]);
-
-                    vertexIndex++;
-                }
-            }
-        }
     }
 
-    private float GetVertexOffset(bool outerRadius)
+    private float GetVertexThicknessOffset(bool outerRadius)
     {
         float offset = m_radius;
         if (m_hasThickness)
@@ -239,7 +214,7 @@ public class MeshBuilder
             m_customMesh.normals[index] = dir;
 
             float anglePercent = (float)(i) / m_sides;
-            m_customMesh.uv[index] = Quaternion.AngleAxis(anglePercent * 360f + 180f, -dir) * Vector2.right * 0.5f + (Vector3.right + Vector3.up) * 0.5f;
+            m_customMesh.uv[index] = Quaternion.AngleAxis(anglePercent * 360f, -dir) * Vector2.right * 0.5f + (Vector3.right + Vector3.up) * 0.5f;
         }
 
         //inner ring
@@ -253,7 +228,7 @@ public class MeshBuilder
 
             float anglePercent = (float)(i) / m_sides;
             float offset = GetCapsVertexOffset();
-            m_customMesh.uv[index] = Quaternion.AngleAxis(anglePercent * 360f + 180f, -dir) * Vector2.right * 0.5f * offset + (Vector3.right + Vector3.up) * 0.5f;
+            m_customMesh.uv[index] = Quaternion.AngleAxis(anglePercent * 360f, -dir) * Vector2.right * 0.5f * offset + (Vector3.right + Vector3.up) * 0.5f;
         }
 
         //end cap
@@ -267,7 +242,7 @@ public class MeshBuilder
             m_customMesh.normals[index] = dir;
 
             float anglePercent = (float)(i) / m_sides;
-            m_customMesh.uv[index] = Quaternion.AngleAxis(anglePercent * 360f, -dir) * Vector2.right * 0.5f + (Vector3.right + Vector3.up) * 0.5f;
+            m_customMesh.uv[index] = Quaternion.AngleAxis(anglePercent * 360f + 180f, -dir) * Vector2.right * 0.5f + (Vector3.right + Vector3.up) * 0.5f;
         }
 
         //inner ring
@@ -282,7 +257,7 @@ public class MeshBuilder
             float anglePercent = (float)(i) / m_sides;
             float offset = GetCapsVertexOffset();
 
-            m_customMesh.uv[index] = Quaternion.AngleAxis(anglePercent * 360f, -dir) * Vector2.right * 0.5f * offset + (Vector3.right + Vector3.up) * 0.5f;
+            m_customMesh.uv[index] = Quaternion.AngleAxis(anglePercent * 360f + 180f, -dir) * Vector2.right * 0.5f * offset + (Vector3.right + Vector3.up) * 0.5f;
         }
 
         GenerateCapsPlaneTriangles();
