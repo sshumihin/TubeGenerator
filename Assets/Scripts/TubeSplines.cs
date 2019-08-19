@@ -8,7 +8,7 @@ public class TubeSplines
 {
     public List<TubePoint> Samples { get; private set; } = new List<TubePoint>();
 
-    public void CalculateSpline(List<Transform> points, TubeGenerator.eSplineMode mode, int subdiv)
+    public void CalculateSamples(List<Transform> points, TubeGenerator.eSplineMode mode, int subdiv)
     {
         Samples.Clear();
 
@@ -73,7 +73,6 @@ public class TubeSplines
                 TubePoint tpmain = new TubePoint()
                 {
                     direction = tangent,
-                    normal = Vector3.up,
                     position = position,
                     right = Vector3.Cross(Vector3.up, tangent).normalized
                 };
@@ -104,41 +103,68 @@ public class TubeSplines
 
     private void CalculateLine(List<Transform> points, int subdiv)
     {
+        List<TubePoint> mainSamples = new List<TubePoint>();
         for (int i = 0; i < points.Count; i++)
         {
-            TubePoint tpmain = null;
-            if (i < points.Count - 1)
+            var p = points[i];
+            var pf = p.forward;
+
+            if (i == 0)
             {
-                Vector3 dir = points[i + 1].position - points[i].position;
+                pf = (points[i + 1].position - p.position).normalized;
+            }
+            else if (i == points.Count - 1)
+            {
+                pf = (p.position - points[i - 1].position).normalized;
+            }
+            else
+            {
+                var dir0 = (p.position - points[i - 1].position).normalized;
+                var dir1 = (points[i + 1].position - p.position).normalized;
+                var res = dir0 + dir1;
+
+                pf = res.normalized;
+            }
+
+            TubePoint tpmain = new TubePoint()
+            {
+                IsPoint = true,
+                direction = pf,
+                position = p.position,
+                right = Vector3.Cross(p.up, pf).normalized,
+            };
+
+            mainSamples.Add(tpmain);
+        }
+
+        for (int i = 0; i < mainSamples.Count; i++)
+        {
+            if (i == mainSamples.Count - 1)
+            {
+                TubePoint tpmain = mainSamples[i];
+                Samples.Add(tpmain);
+            }
+            else
+            {
+                Samples.Add(mainSamples[i]);
+
+                Vector3 dir = mainSamples[i + 1].position - mainSamples[i].position;
 
                 dir /= subdiv;
 
-                for (int j = 0; j < subdiv; j++)
+                for (int j = 0; j < subdiv - 1; j++)
                 {
                     TubePoint tp = new TubePoint()
                     {
+                        IsPoint = false,
                         direction = dir.normalized,
-                        normal = points[i].up,
-                        position = points[i].position + dir * j,
+                        position = mainSamples[i].position + dir * (j + 1),
                         right = Vector3.Cross(Vector3.up, dir.normalized).normalized
                     };
 
                     Samples.Add(tp);
                 }
             }
-            else
-            {
-                tpmain = new TubePoint()
-                {
-                    direction = points[i].forward,
-                    normal = points[i].up,
-                    position = points[i].position,
-                    right = points[i].right,
-                };
-
-                Samples.Add(tpmain);
-            }
-
         }
     }
 }

@@ -372,7 +372,7 @@ public class TubeGenerator : MonoBehaviour
 
     private void EvaluateSpline()
     {
-        m_splines.CalculateSpline(points, SplineMode, subdivision);
+        m_splines.CalculateSamples(points, SplineMode, subdivision);
     }
 
     void WriteMesh(MeshBuilder.CustomMesh cmesh)
@@ -384,14 +384,23 @@ public class TubeGenerator : MonoBehaviour
     {
         for (int i = 0; i < m_splines.Samples.Count; i++)
         {
-            Vector3 pos = m_splines.Samples[i].position;
-            if (i > 1)
+            Gizmos.color = Color.white;
+            var sample = m_splines.Samples[i];
+            Vector3 pos = sample.position;
+            if (i > 0)
             {
                 Vector3 prev = m_splines.Samples[i - 1].position;
                 Gizmos.DrawLine(prev, pos);
             }
 
             Gizmos.DrawSphere(pos, 0.5f);
+
+            if (sample.IsPoint)
+            {
+                Gizmos.color = Color.blue;
+                Ray r = new Ray(sample.position, sample.direction*2f);
+                Gizmos.DrawRay(r);
+            }
         }
     }
 }
